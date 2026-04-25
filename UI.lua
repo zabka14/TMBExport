@@ -158,7 +158,7 @@ local function CreateSettingsFrame()
     if settingsFrame then return settingsFrame end
 
     settingsFrame = CreateFrame("Frame", "TMBExportSettingsFrame", UIParent, "BackdropTemplate")
-    settingsFrame:SetSize(380, 200)
+    settingsFrame:SetSize(380, 320)
     settingsFrame:SetPoint("CENTER")
     settingsFrame:SetBackdrop({
         bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
@@ -203,6 +203,25 @@ local function CreateSettingsFrame()
         end
     end)
 
+    -- Tooltip checkbox
+    local tooltipCheck = CreateFrame("CheckButton", "TMBExportTooltipCheck", settingsFrame, "UICheckButtonTemplate")
+    tooltipCheck:SetPoint("TOPLEFT", 20, -150)
+    _G[tooltipCheck:GetName() .. "Text"]:SetText("Show wishlist info in item tooltips")
+
+    local tooltipDesc = settingsFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    tooltipDesc:SetPoint("TOPLEFT", 40, -180)
+    tooltipDesc:SetPoint("RIGHT", settingsFrame, "RIGHT", -20, 0)
+    tooltipDesc:SetJustifyH("LEFT")
+    tooltipDesc:SetText("When enabled, hovering an item displays the list of characters who have it in their wishlist.")
+    tooltipDesc:SetTextColor(0.7, 0.7, 0.7)
+
+    tooltipCheck:SetScript("OnClick", function(self)
+        if not TMBExport.db.settings then
+            TMBExport.db.settings = {}
+        end
+        TMBExport.db.settings.showTooltip = self:GetChecked() and true or false
+    end)
+
     -- Close button at bottom
     local okBtn = CreateFrame("Button", nil, settingsFrame, "GameMenuButtonTemplate")
     okBtn:SetSize(100, 25)
@@ -213,10 +232,12 @@ local function CreateSettingsFrame()
     end)
 
     settingsFrame.priorityCheck = priorityCheck
+    settingsFrame.tooltipCheck = tooltipCheck
 
     settingsFrame:SetScript("OnShow", function(self)
-        local enabled = TMBExport.db and TMBExport.db.settings and TMBExport.db.settings.usePriority
-        self.priorityCheck:SetChecked(enabled and true or false)
+        local s = TMBExport.db and TMBExport.db.settings or {}
+        self.priorityCheck:SetChecked(s.usePriority and true or false)
+        self.tooltipCheck:SetChecked(s.showTooltip ~= false)
     end)
 
     return settingsFrame
@@ -703,6 +724,9 @@ end
 -- ============================================================
 local function OnTooltipSetItem(tooltip)
     if not TMBExport.db or not TMBExport.db.wishlists or #TMBExport.db.wishlists == 0 then
+        return
+    end
+    if TMBExport.db.settings and TMBExport.db.settings.showTooltip == false then
         return
     end
 

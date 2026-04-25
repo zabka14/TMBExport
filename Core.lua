@@ -35,6 +35,7 @@ local function GetDefaultDB()
         minimapPos = 220, -- angle in degrees for minimap button position
         settings = {
             usePriority = true,
+            showTooltip = true,
         },
     }
 end
@@ -54,10 +55,13 @@ eventFrame:SetScript("OnEvent", function(self, event, addonName)
             TMBExportDB.minimapPos = 220
         end
         if not TMBExportDB.settings then
-            TMBExportDB.settings = { usePriority = true }
+            TMBExportDB.settings = { usePriority = true, showTooltip = true }
         end
         if TMBExportDB.settings.usePriority == nil then
             TMBExportDB.settings.usePriority = true
+        end
+        if TMBExportDB.settings.showTooltip == nil then
+            TMBExportDB.settings.showTooltip = true
         end
 
         TMBExport.db = TMBExportDB
