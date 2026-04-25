@@ -1,0 +1,16 @@
+## Interface: 20504
+## Title: ThatsMyBis Wishlist Viewer
+## Notes: Import and view ThatsMyBis.com wishlists by raid and roster
+## Author: Centpoursang - Spineshatter
+## Version: 1.0.0
+## X-License: MIT
+## SavedVariables: TMBExportDB
+
+libs\LibStub\LibStub.lua
+libs\CallbackHandler-1.0\CallbackHandler-1.0.lua
+libs\LibDataBroker-1.1\LibDataBroker-1.1.lua
+libs\LibDBIcon-1.0\LibDBIcon-1.0.lua
+
+Core.lua
+CSVParser.lua
+UI.lua
