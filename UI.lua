@@ -1,5 +1,5 @@
 -- TMBExport UI Module
-local FRAME_WIDTH = 800
+local FRAME_WIDTH = 950
 local FRAME_HEIGHT = 600
 local ROW_HEIGHT = 20
 local HEADER_HEIGHT = 24
@@ -11,6 +11,7 @@ local currentBoss = nil
 local contentRows = {}
 local bossButtons = {}
 local importFrame = nil
+local settingsFrame = nil
 
 -- Hidden frame used as a garbage parent for recycled UI elements
 local recycleBin = CreateFrame("Frame")
@@ -151,6 +152,77 @@ local function CreateImportFrame()
 end
 
 -- ============================================================
+-- Settings Dialog
+-- ============================================================
+local function CreateSettingsFrame()
+    if settingsFrame then return settingsFrame end
+
+    settingsFrame = CreateFrame("Frame", "TMBExportSettingsFrame", UIParent, "BackdropTemplate")
+    settingsFrame:SetSize(380, 200)
+    settingsFrame:SetPoint("CENTER")
+    settingsFrame:SetBackdrop({
+        bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+        edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+        tile = true, tileSize = 32, edgeSize = 32,
+        insets = {left = 8, right = 8, top = 8, bottom = 8},
+    })
+    settingsFrame:SetMovable(true)
+    settingsFrame:EnableMouse(true)
+    settingsFrame:RegisterForDrag("LeftButton")
+    settingsFrame:SetScript("OnDragStart", settingsFrame.StartMoving)
+    settingsFrame:SetScript("OnDragStop", settingsFrame.StopMovingOrSizing)
+    settingsFrame:SetFrameStrata("DIALOG")
+    settingsFrame:Hide()
+
+    local title = settingsFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    title:SetPoint("TOP", 0, -16)
+    title:SetText("TMBExport - Settings")
+
+    local closeBtn = CreateFrame("Button", nil, settingsFrame, "UIPanelCloseButton")
+    closeBtn:SetPoint("TOPRIGHT", -5, -5)
+
+    -- Priority checkbox
+    local priorityCheck = CreateFrame("CheckButton", "TMBExportPriorityCheck", settingsFrame, "UICheckButtonTemplate")
+    priorityCheck:SetPoint("TOPLEFT", 20, -55)
+    _G[priorityCheck:GetName() .. "Text"]:SetText("Use priority system")
+
+    local desc = settingsFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    desc:SetPoint("TOPLEFT", 40, -85)
+    desc:SetPoint("RIGHT", settingsFrame, "RIGHT", -20, 0)
+    desc:SetJustifyH("LEFT")
+    desc:SetText("When enabled, characters are sorted by their priority and the priority number is shown after each name in parentheses.")
+    desc:SetTextColor(0.7, 0.7, 0.7)
+
+    priorityCheck:SetScript("OnClick", function(self)
+        if not TMBExport.db.settings then
+            TMBExport.db.settings = {}
+        end
+        TMBExport.db.settings.usePriority = self:GetChecked() and true or false
+        if mainFrame and mainFrame:IsShown() then
+            TMBExport:RefreshDisplay()
+        end
+    end)
+
+    -- Close button at bottom
+    local okBtn = CreateFrame("Button", nil, settingsFrame, "GameMenuButtonTemplate")
+    okBtn:SetSize(100, 25)
+    okBtn:SetPoint("BOTTOM", 0, 20)
+    okBtn:SetText("Close")
+    okBtn:SetScript("OnClick", function()
+        settingsFrame:Hide()
+    end)
+
+    settingsFrame.priorityCheck = priorityCheck
+
+    settingsFrame:SetScript("OnShow", function(self)
+        local enabled = TMBExport.db and TMBExport.db.settings and TMBExport.db.settings.usePriority
+        self.priorityCheck:SetChecked(enabled and true or false)
+    end)
+
+    return settingsFrame
+end
+
+-- ============================================================
 -- Main Frame
 -- ============================================================
 local function CreateMainFrame()
@@ -281,6 +353,20 @@ local function CreateMainFrame()
     clearBtn:SetText("Clear All Data")
     clearBtn:SetScript("OnClick", function()
         StaticPopup_Show("TMBEXPORT_CONFIRM_CLEAR")
+    end)
+
+    -- Settings button
+    local settingsBtn = CreateFrame("Button", nil, mainFrame, "GameMenuButtonTemplate")
+    settingsBtn:SetSize(100, 25)
+    settingsBtn:SetPoint("RIGHT", clearBtn, "LEFT", -5, 0)
+    settingsBtn:SetText("Settings")
+    settingsBtn:SetScript("OnClick", function()
+        local f = CreateSettingsFrame()
+        if f:IsShown() then
+            f:Hide()
+        else
+            f:Show()
+        end
     end)
 
     StaticPopupDialogs["TMBEXPORT_CONFIRM_CLEAR"] = {
@@ -564,11 +650,26 @@ function TMBExport:RefreshDisplay()
             end
 
             -- Players list (class-colored, comma-separated)
+            local usePriority = TMBExport.db and TMBExport.db.settings and TMBExport.db.settings.usePriority
+            if usePriority then
+                table.sort(group.players, function(a, b)
+                    local pa = tonumber(a.sort_order) or 99
+                    local pb = tonumber(b.sort_order) or 99
+                    if pa == pb then
+                        return (a.character_name or "") < (b.character_name or "")
+                    end
+                    return pa < pb
+                end)
+            end
+
             local names = {}
             for _, player in ipairs(group.players) do
                 local r, g, b = GetClassColor(player.character_class)
                 local colorHex = string.format("|cff%02x%02x%02x", r * 255, g * 255, b * 255)
                 local name = colorHex .. player.character_name .. "|r"
+                if usePriority and player.sort_order then
+                    name = name .. "|cffAAAAAA(" .. player.sort_order .. ")|r"
+                end
                 if player.is_offspec then
                     name = name .. "|cffFF8800(OS)|r"
                 end
@@ -629,13 +730,31 @@ local function OnTooltipSetItem(tooltip)
         table.insert(rosterEntries[roster], entry)
     end
 
+    local usePriority = TMBExport.db and TMBExport.db.settings and TMBExport.db.settings.usePriority
+
     for _, roster in ipairs(rosterOrder) do
+        local rosterList = rosterEntries[roster]
+
+        if usePriority then
+            table.sort(rosterList, function(a, b)
+                local pa = tonumber(a.sort_order) or 99
+                local pb = tonumber(b.sort_order) or 99
+                if pa == pb then
+                    return (a.character_name or "") < (b.character_name or "")
+                end
+                return pa < pb
+            end)
+        end
+
         -- Build a comma-separated line with class-colored names
         local names = {}
-        for _, entry in ipairs(rosterEntries[roster]) do
+        for _, entry in ipairs(rosterList) do
             local r, g, b = GetClassColor(entry.character_class)
             local colorHex = string.format("|cff%02x%02x%02x", r * 255, g * 255, b * 255)
             local name = colorHex .. entry.character_name .. "|r"
+            if usePriority and entry.sort_order then
+                name = name .. "|cffAAAAAA(" .. entry.sort_order .. ")|r"
+            end
             if entry.is_offspec then
                 name = name .. "|cffFF8800(OS)|r"
             end

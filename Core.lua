@@ -33,6 +33,9 @@ local function GetDefaultDB()
     return {
         wishlists = {},  -- flat list of all entries, each has a raid_group_name field
         minimapPos = 220, -- angle in degrees for minimap button position
+        settings = {
+            usePriority = true,
+        },
     }
 end
 
@@ -49,6 +52,12 @@ eventFrame:SetScript("OnEvent", function(self, event, addonName)
         end
         if not TMBExportDB.minimapPos then
             TMBExportDB.minimapPos = 220
+        end
+        if not TMBExportDB.settings then
+            TMBExportDB.settings = { usePriority = true }
+        end
+        if TMBExportDB.settings.usePriority == nil then
+            TMBExportDB.settings.usePriority = true
         end
 
         TMBExport.db = TMBExportDB
