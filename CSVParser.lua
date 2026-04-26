@@ -109,6 +109,7 @@ function TMBExport:ParseCSV(csvText)
                         source_name = row["source_name"] or "",
                         received_at = row["received_at"] or "",
                         note = row["note"] or "",
+                        item_prio_note = row["item_prio_note"] or "",
                     }
                     table.insert(entries, entry)
                 end

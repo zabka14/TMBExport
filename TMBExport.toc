@@ -2,7 +2,7 @@
 ## Title: ThatsMyBis Wishlist Viewer
 ## Notes: Import and view ThatsMyBis.com wishlists by raid and roster
 ## Author: Centpoursang - Spineshatter
-## Version: 1.0.3
+## Version: 1.0.4
 ## X-License: MIT
 ## SavedVariables: TMBExportDB
 

@@ -1,5 +1,5 @@
 -- TMBExport UI Module
-local FRAME_WIDTH = 950
+local FRAME_WIDTH = 1100
 local FRAME_HEIGHT = 600
 local ROW_HEIGHT = 20
 local HEADER_HEIGHT = 24
@@ -12,6 +12,7 @@ local contentRows = {}
 local bossButtons = {}
 local importFrame = nil
 local settingsFrame = nil
+local expandedItems = {}  -- key: bossName .. "#" .. itemId -> true if expanded
 
 -- Hidden frame used as a garbage parent for recycled UI elements
 local recycleBin = CreateFrame("Frame")
@@ -581,13 +582,13 @@ function TMBExport:RefreshDisplay()
     table.insert(contentRows, colHeader)
 
     local col1 = colHeader:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    col1:SetPoint("LEFT", 8, 0)
-    col1:SetWidth(200)
+    col1:SetPoint("LEFT", 28, 0)
+    col1:SetWidth(220)
     col1:SetJustifyH("LEFT")
     col1:SetText("|cffAAAAAAItem|r")
 
     local col2 = colHeader:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    col2:SetPoint("LEFT", 210, 0)
+    col2:SetPoint("LEFT", 250, 0)
     col2:SetWidth(350)
     col2:SetJustifyH("LEFT")
     col2:SetText("|cffAAAAAAPlayers|r")
@@ -641,14 +642,29 @@ function TMBExport:RefreshDisplay()
                 bg:SetColorTexture(0.15, 0.15, 0.15, 0.5)
             end
 
+            -- Expand/collapse button
+            local expandKey = bossName .. "#" .. tostring(group.item_id)
+            local isExpanded = expandedItems[expandKey] or false
+
+            local expandBtn = CreateFrame("Button", nil, row)
+            expandBtn:SetPoint("LEFT", 6, 0)
+            expandBtn:SetSize(16, 16)
+            local expandText = expandBtn:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+            expandText:SetPoint("CENTER", 0, 0)
+            expandText:SetText(isExpanded and "|cffFFD100-|r" or "|cffFFD100+|r")
+            expandBtn:SetScript("OnClick", function()
+                expandedItems[expandKey] = not expandedItems[expandKey]
+                TMBExport:RefreshDisplay()
+            end)
+
             -- Item name (clickable with tooltip)
             local itemBtn = CreateFrame("Button", nil, row)
-            itemBtn:SetPoint("LEFT", 8, 0)
-            itemBtn:SetSize(200, ROW_HEIGHT)
+            itemBtn:SetPoint("LEFT", 28, 0)
+            itemBtn:SetSize(220, ROW_HEIGHT)
 
             local itemText = itemBtn:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
             itemText:SetPoint("LEFT", 0, 0)
-            itemText:SetWidth(200)
+            itemText:SetWidth(220)
             itemText:SetJustifyH("LEFT")
             itemText:SetText("|cffffffff" .. group.item_name .. "|r")
 
@@ -701,12 +717,73 @@ function TMBExport:RefreshDisplay()
             end
 
             local playersText = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-            playersText:SetPoint("LEFT", 210, 0)
+            playersText:SetPoint("LEFT", 250, 0)
             playersText:SetPoint("RIGHT", row, "RIGHT", -5, 0)
             playersText:SetJustifyH("LEFT")
             playersText:SetText(table.concat(names, ", "))
 
             yOffset = yOffset + ROW_HEIGHT
+
+            -- Expanded details table
+            if isExpanded then
+                local detailHeight = ROW_HEIGHT
+                local detail = CreateFrame("Frame", nil, scrollChild, "BackdropTemplate")
+                detail:SetSize(contentWidth - 30, detailHeight)
+                detail:SetPoint("TOPLEFT", 35, -yOffset)
+                detail:SetBackdrop({
+                    bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+                })
+                detail:SetBackdropColor(0.1, 0.1, 0.1, 0.6)
+                table.insert(contentRows, detail)
+
+                -- Column layout: Player(160) Prio(40) OS(30) Note(220) ItemPrioNote(rest)
+                local cols = {
+                    { x = 6,   w = 160, label = "Player" },
+                    { x = 170, w = 40,  label = "Prio" },
+                    { x = 215, w = 30,  label = "OS" },
+                    { x = 250, w = 220, label = "Note" },
+                    { x = 475, w = 280, label = "Item Prio Note" },
+                }
+                for _, c in ipairs(cols) do
+                    local h = detail:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+                    h:SetPoint("TOPLEFT", c.x, -2)
+                    h:SetWidth(c.w)
+                    h:SetJustifyH("LEFT")
+                    h:SetText("|cffAAAAAA" .. c.label .. "|r")
+                end
+
+                local rowY = ROW_HEIGHT
+                for _, player in ipairs(group.players) do
+                    local r, g, bb = GetClassColor(player.character_class)
+                    local colorHex = string.format("|cff%02x%02x%02x", r * 255, g * 255, bb * 255)
+
+                    local function dim(s)
+                        if not s or s == "" then return "|cff666666-|r" end
+                        return s
+                    end
+
+                    local values = {
+                        colorHex .. (player.character_name or "") .. "|r",
+                        tostring(player.sort_order or "-"),
+                        player.is_offspec and "|cffFF8800Yes|r" or "|cff666666-|r",
+                        dim(player.note),
+                        dim(player.item_prio_note),
+                    }
+
+                    for i, c in ipairs(cols) do
+                        local fs = detail:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+                        fs:SetPoint("TOPLEFT", c.x, -rowY)
+                        fs:SetWidth(c.w)
+                        fs:SetJustifyH("LEFT")
+                        fs:SetWordWrap(true)
+                        fs:SetText(values[i])
+                    end
+                    rowY = rowY + ROW_HEIGHT
+                end
+
+                detail:SetHeight(rowY + 4)
+                yOffset = yOffset + rowY + 6
+            end
         end
 
         -- Spacing between bosses
