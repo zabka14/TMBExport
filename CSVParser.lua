@@ -91,8 +91,11 @@ function TMBExport:ParseCSV(csvText)
                     row[h] = fields[i] and trim(fields[i]) or ""
                 end
 
-                -- Only import wishlist entries (not "received")
-                if row["type"] == "wishlist" and row["instance_name"] and row["instance_name"] ~= "" then
+                -- Only import wishlist entries (not "received").
+                -- Entries without instance_name are kept: tier set pieces have
+                -- no instance/source in the CSV and are remapped to their token
+                -- (with instance + source) at import time by RemapTierPieces.
+                if row["type"] == "wishlist" then
                     local entry = {
                         raid_group_name = (row["raid_group_name"] ~= nil and row["raid_group_name"] ~= "") and row["raid_group_name"] or "No Roster",
                         character_name = row["character_name"] or "",

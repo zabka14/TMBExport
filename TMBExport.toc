@@ -2,7 +2,7 @@
 ## Title: ThatsMyBis Wishlist Viewer
 ## Notes: Import and view ThatsMyBis.com wishlists by raid and roster
 ## Author: Centpoursang - Spineshatter
-## Version: 1.0.0
+## Version: 1.0.3
 ## X-License: MIT
 ## SavedVariables: TMBExportDB
 
@@ -13,4 +13,5 @@ libs\LibDBIcon-1.0\LibDBIcon-1.0.lua
 
 Core.lua
 CSVParser.lua
+TierTokens.lua
 UI.lua

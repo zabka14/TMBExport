@@ -161,11 +161,19 @@ end
 
 -- Import parsed CSV data (replaces all existing data)
 function TMBExport:ImportData(entries)
+    local remapped = 0
+    if self.RemapTierPieces then
+        remapped = self:RemapTierPieces(entries)
+    end
+
     self.db.wishlists = entries
 
     local rosters = self:GetRosters()
     local rosterList = table.concat(rosters, ", ")
     print("|cff00ccffTMBExport|r: Imported " .. #entries .. " wishlist entries.")
+    if remapped > 0 then
+        print("|cff00ccffTMBExport|r: Remapped " .. remapped .. " tier set pieces to their tokens.")
+    end
     if #rosters > 0 then
         print("|cff00ccffTMBExport|r: Rosters found: " .. rosterList)
     end
